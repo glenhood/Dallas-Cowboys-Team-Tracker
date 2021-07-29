@@ -100,13 +100,9 @@ let departmentName = ["Offensive", "Defensive", "Coach", "KickOff", "Punt Return
 
 
 function addTeamMember() {
+    db.query("SELECT * FROM employee_role", (err, results) => {
     inquirer
         .prompt([{
-                type: "input",
-                message: "What is Team Member's id?",
-                name: "employee_id",
-            },
-            {
                 type: "input",
                 message: "What is Team Member's first name?",
                 name: "employee_first_name",
@@ -120,108 +116,83 @@ function addTeamMember() {
                 type: "list",
                 message: "What is Team Member's role?",
                 name: "employee_role",
-                choices: [
-                    "Quaterback",
-                    "Running Back",
-                    "Wide Reciever",
-                    "Defensive End",
-                    "Linebacker",
-                    "Offensive Coordinator", 
-                    "Defensive Coordinator",
-                ],
+                choices: results.map(item => item.title)
             },
-            {
-                type: "list",
-                message: "Who is the Team Member's Coach?",
-                name: "teamMemberCoach",
-                choices: [
-                    "Kellen Moore",
-                    "Dan Quinn", 
-                    "None",
-                ],
-            },
+            
         ])
-        .then(async(answer) => {
-            console.table(answer);
-            let employee_first_name = answer.employee_firstName;
-            let employee_last_name = answer.employee_lastName;
-            let employee_role = answer.employee_role;
-            let teamMemberCoach = answer.employee_manager;
-            let roleId = await convertRoleToId(employee_role)
-            let mgrId = await convertCoachToId(teamMemberCoach)
-            db.query(
-                `INSERT INTO employee (first_name, last_name, role_id, coach_id) VALUES (${employee_first_name},${employee_last_name},${employee_role}','${teamMemberCoach}')`,
-                (err, results) => {
-                    if (err) throw err;
-                    console.table(`\n Added ${employee_last_name} to the Team!\n `);
-                }
-            );
-
-            questionPrompt();
-        });
-
-}
-
-const convertCoachToId = (mgr) => {
-    return new Promise(function(resolve, reject) {
-        db.query(`SELECT * FROM employee WHERE CONCAT(first_name, ' ', last_name) LIKE '%${coach}%';`, function(err, results) {
-            if (err) return err
-
-            let id = results[0].id
-            resolve(id);
-        })
-    })
-}
-
-const convertRoleToId = (role) => {
-    return new Promise(function(resolve, reject) {
-        db.query(`SELECT * FROM roles WHERE title LIKE '%${role_id}%';`, function(err, results) {
-            if (err) return err
-            let id = results[0].id
-            resolve(id);
-        })
-    })
-}
-
-function addTeamRole() {
-    inquirer
-        .prompt([{
-                type: "input",
-                message: "What is the name of the Team Role?",
-                name: "teamRole",
-            },
-            {
-                type: "input",
-                message: "What is the salary  of the Team Role?",
-                name: "salary",
-            },
-
-            {
-                type: "list",
-                message: "What is name of the department?",
-                name: "departmentName",
-                choices: departmentName,
-            },
-        ])
+    
         .then((answer) => {
             console.table(answer);
-            let teamRole = answer.teamRole;
-            let salary = answer.salary;
-            let de
-            db.query(
-                `INSERT INTO employee_role(title, salary, ) VALUES("${teamRole}", ${salary}, );`,
-                function(err, results) {
-                    if (err) return err;
-
-                    console.log("added successfully");
-                }
+            let employee_first_name = answer.employee_first_name;
+            let employee_last_name = answer.employee_last_name;
+            let employee_role = results.find(item => item.title===answer.employee_role)
+            
+            db.query("SELECT * FROM employee", function (err, results) {
+                    if (err) throw err;
+                    console.log("bad")
+                    inquirer
+                    .prompt([{
+                        name: 'coach_id',
+                        type: 'list',
+                        message: 'Select the Coach for this Team Member',
+                        choices: results.map(item => item.first_name)
+                    }])
+            
+            .then((answer) => {
+                const coachChosen = results.find(item => item.first_name===answer.coach_id)
+                db.query("INSERT INTO employee SET ?", {
+                    first_name: employee_first_name,
+                    last_name: employee_last_name,
+                    role_id: employee_role.id,
+                    coach_id: coachChosen.id
+                }), questionPrompt();
+              }
             );
-            questionPrompt();
-        });
-
+            
+        })
+    
+    })       
+  })
 }
 
-
+const addTeamRole = () => {
+    db.query("SELECT * FROM department", function (err, results){
+    if (err) throw err;
+    inquirer
+    .prompt([{
+        name: `roleAdd`,
+        type: `input`,
+        message: `Enter the role you would like to add.`,
+        },
+        {
+        name: `salary`,
+        type: `number`,
+        message: `Enter the salary of this role.`
+        },
+        {
+        name: `department_id`,
+        type: `list`,
+        message: `Select the department to which this role belongs.`,
+        choices: results.map(item => item.department_name)
+    },
+])
+    .then((answer) => {
+        const departmentChosen = results.find(item => item.department_name===answer.department_id)
+        db.query(
+          "INSERT INTO employee_role SET ?", {
+            title: answer.roleAdd,
+            salary: answer.salary,
+            department_id: departmentChosen.id
+          },
+          function (err) {
+              if (err) throw err;
+              console.log("Added " + answer.roleAdd + " Role!");
+            questionPrompt();
+          }  
+        )
+    })
+    })
+    }
 
 
 function addTeamDepartment() {
@@ -257,3 +228,4 @@ function addTeamDepartment() {
 
 }
 questionPrompt();
+            
