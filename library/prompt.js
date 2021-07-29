@@ -141,16 +141,16 @@ function addTeamMember() {
                 ],
             },
         ])
-        .then((answer) => {
-            console.table
-            (answer);
-            let employee_id = answer.employee_id;
+        .then(async(answer) => {
+            console.table(answer);
             let employee_first_name = answer.employee_firstName;
             let employee_last_name = answer.employee_lastName;
-            let employee_role = answer.employee_Role;
+            let employee_role = answer.employee_role;
             let teamMemberCoach = answer.employee_manager;
+            let roleId = await convertRoleToId(employee_role)
+            let mgrId = await convertCoachToId(teamMemberCoach)
             db.query(
-                `INSERT INTO employee (id, first_name, last_name, role_id, coach_id) VALUES (${employee_id},${employee_first_name},${employee_last_name},${employee_role}','${teamMemberCoach}')`,
+                `INSERT INTO employee (first_name, last_name, role_id, coach_id) VALUES (${employee_first_name},${employee_last_name},${employee_role}','${teamMemberCoach}')`,
                 (err, results) => {
                     if (err) throw err;
                     console.table(`\n Added ${employee_last_name} to the Team!\n `);
@@ -162,7 +162,26 @@ function addTeamMember() {
 
 }
 
-teamRoleArray = []
+const convertCoachToId = (mgr) => {
+    return new Promise(function(resolve, reject) {
+        db.query(`SELECT * FROM employee WHERE CONCAT(first_name, ' ', last_name) LIKE '%${coach}%';`, function(err, results) {
+            if (err) return err
+
+            let id = results[0].id
+            resolve(id);
+        })
+    })
+}
+
+const convertRoleToId = (role) => {
+    return new Promise(function(resolve, reject) {
+        db.query(`SELECT * FROM roles WHERE title LIKE '%${role_id}%';`, function(err, results) {
+            if (err) return err
+            let id = results[0].id
+            resolve(id);
+        })
+    })
+}
 
 function addTeamRole() {
     inquirer
@@ -177,25 +196,22 @@ function addTeamRole() {
                 name: "salary",
             },
 
-            // {
-            //     type: "list",
-            //     message: "What is name of the department?",
-            //     name: "departmentName",
-            //     choices: departmentName,
-            // },
+            {
+                type: "list",
+                message: "What is name of the department?",
+                name: "departmentName",
+                choices: departmentName,
+            },
         ])
         .then((answer) => {
             console.table(answer);
             let teamRole = answer.teamRole;
             let salary = answer.salary;
-            // let departmentName = answer.departmentName;
-            // // teamRoleArray.push(teamRole);
-            // teamRoleArray.push(salary);
-            // teamRoleArray.push(departmentName);
+            let de
             db.query(
-                `INSERT INTO employee_role(title, salary) VALUES("${teamRole}", ${salary});`,
+                `INSERT INTO employee_role(title, salary, ) VALUES("${teamRole}", ${salary}, );`,
                 function(err, results) {
-                    if (err) throw err;
+                    if (err) return err;
 
                     console.log("added successfully");
                 }
